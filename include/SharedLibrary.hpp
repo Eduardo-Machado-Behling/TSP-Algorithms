@@ -1,33 +1,18 @@
-#ifndef SHARED_LIBRARY_LOADER_H
-#define SHARED_LIBRARY_LOADER_H
+#ifndef SHARED_LIBRARY_HPP
+#define SHARED_LIBRARY_HPP
 
 #include <functional>
 #include <stdexcept>
 #include <string>
 
-
-// Platform-specific includes
 #ifdef _WIN32
 #include <windows.h>
 #else
 #include <dlfcn.h>
 #endif
 
-/**
- * @class SharedLibrary
- * @brief A cross-platform wrapper for dynamically loading shared libraries
- * (.dll or .so).
- *
- * This class abstracts the platform-specific details of loading a shared
- * library and retrieving function pointers from it.
- */
 class SharedLibrary {
 public:
-  /**
-   * @brief Loads a shared library from the given path.
-   * @param path The path to the shared library file.
-   * @throws std::runtime_error if the library cannot be loaded.
-   */
   explicit SharedLibrary(const std::string &path) {
 #ifdef _WIN32
     m_handle = LoadLibraryA(path.c_str());
@@ -45,9 +30,6 @@ public:
 #endif
   }
 
-  /**
-   * @brief Unloads the library.
-   */
   ~SharedLibrary() {
 #ifdef _WIN32
     if (m_handle) {
@@ -60,18 +42,9 @@ public:
 #endif
   }
 
-  // Disable copy constructor and assignment operator to prevent handle
-  // mismanagement.
   SharedLibrary(const SharedLibrary &) = delete;
   SharedLibrary &operator=(const SharedLibrary &) = delete;
 
-  /**
-   * @brief Retrieves a function pointer from the loaded library.
-   * @tparam T The function signature type (e.g., `void(int, float)`).
-   * @param functionName The name of the function to retrieve.
-   * @return A std::function wrapper around the loaded function.
-   * @throws std::runtime_error if the function cannot be found.
-   */
   template <typename T>
   std::function<T> getFunction(const std::string &functionName) {
 #ifdef _WIN32
@@ -87,11 +60,7 @@ public:
   }
 
 private:
-#ifdef _WIN32
-  void *m_handle = nullptr; // Using HMODULE (which is a void*)
-#else
   void *m_handle = nullptr;
-#endif
 };
 
-#endif // SHARED_LIBRARY_LOADER_H
+#endif // SHARED_LIBRARY_HPP

@@ -13,7 +13,7 @@
 #define EPSILON 1e-9
 #endif
 
-using f_TSP = void(float *, float *, size_t, size_t);
+using f_TSP = size_t(int *, const float *, size_t);
 using Clock = std::chrono::high_resolution_clock;
 
 const char SHARED_EXTENSION[] = SHARED_EXTENSION_STR;
@@ -23,7 +23,6 @@ struct AdjacencyMatrix {
 
   std::vector<float> data;
   size_t cols = 0;
-  size_t row = 0;
 
   float expected = 0.0;
 };
@@ -39,6 +38,19 @@ bool endsWith(const std::filesystem::directory_entry &dir_entry,
 
   return true;
 }
+
+struct CSVWriter {
+  CSVWriter(const char headers[][20]) : csv("log.csv") {
+    for (size_t i = 0; i < sizeof(headers) / sizeof(*headers); i++) {
+    }
+  }
+
+  void start() { csv << '\n'; }
+  template <typename T> void write(T &val) { csv << val; }
+
+private:
+  std::ofstream csv;
+};
 
 std::vector<AdjacencyMatrix> loadExamples(const std::filesystem::path &root) {
   std::vector<AdjacencyMatrix> samples;
@@ -59,12 +71,13 @@ std::vector<AdjacencyMatrix> loadExamples(const std::filesystem::path &root) {
     m.expected = val;
 
     std::string buff;
+    bool first = true;
     while (std::getline(file, buff)) {
 
       while (true) {
         size_t j = buff.find(' ');
 
-        if (m.row == 0)
+        if (first)
           m.cols += 1;
         m.data.push_back(std::stof(buff.substr(0, j)));
 
@@ -77,7 +90,7 @@ std::vector<AdjacencyMatrix> loadExamples(const std::filesystem::path &root) {
           break;
         buff = buff.substr(j);
       }
-      m.row += 1;
+      first = false;
     }
   }
 
@@ -85,12 +98,6 @@ std::vector<AdjacencyMatrix> loadExamples(const std::filesystem::path &root) {
 }
 
 int main(int argc, const char **argv) {
-  int n = 1 << 20;                   // 1,048,576 elements
-  std::vector<float> h_a(n, 1.0f);   // Host vector a
-  std::vector<float> h_b(n, 2.0f);   // Host vector b
-  std::vector<float> h_c(n);         // Host vector c (for the result)
-  std::vector<float> h_exp(n, 3.0f); // Host vector expected
-
   std::filesystem::path root = argv[0];
   root = root.parent_path();
 
@@ -108,14 +115,21 @@ int main(int argc, const char **argv) {
 
     std::cout << dir_entry.path().filename() << ": " << '\n';
     for (auto &sample : samples) {
-      float out;
+      int *out = (int *)malloc(sizeof(int) * sample.cols);
       Clock::time_point start = Clock::now();
-      tsp(&out, sample.data.data(), sample.row, sample.cols);
+      size_t n = tsp(out, sample.data.data(), sample.cols);
       std::chrono::duration<double> dur = Clock::now() - start;
       std::cout << '\t' << sample.origin.filename() << ": " << dur.count()
                 << "s\n";
 
-      float delta = out - sample.expected;
+      float cost = 0;
+      for (size_t i = 0; i < n; i++) {
+        size_t ni = (i + 1) % n;
+
+        cost += sample.data[out[i] * sample.cols + out[ni]];
+      }
+
+      float delta = cost - sample.expected;
       if (std::abs(delta) > EPSILON) {
         std::cout << "\tWrong by: " << delta << " (out - expected)\n\n";
       } else {
