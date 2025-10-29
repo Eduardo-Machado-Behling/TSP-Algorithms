@@ -10,8 +10,4 @@
 #include "MST.hpp"
 #include "MWMatching.hpp"
 
-size_t TSP(int *output, const float *adjMatrix, size_t numVerts) {
-  std::cout << "Hello" << std::endl;
-
-  return 0;
-}
+size_t TSP(int *output, const float *adjMatrix, size_t numVerts) { return 0; }

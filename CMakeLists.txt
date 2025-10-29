@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 
 add_executable(${PROJECT_NAME}
     src/main.cpp
@@ -42,19 +43,6 @@ if(ALL_LIBRARY_TARGETS)
 endif()
 
 
-
-# --- Post-Build Steps for Copying DLLs/SOs ---
-if(WIN32)
-    # Loop through each library target and create a command to copy its DLL.
-    foreach(LIB_TARGET ${ALL_LIBRARY_TARGETS})
-        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            $<TARGET_FILE:${LIB_TARGET}>
-            $<TARGET_FILE_DIR:${PROJECT_NAME}>
-            COMMENT "Copying ${LIB_TARGET}.dll to executable directory"
-        )
-    endforeach()
-endif()
 
 # Check if a 'samples' directory exists at the project root.
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/samples")
