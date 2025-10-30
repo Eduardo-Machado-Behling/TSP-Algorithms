@@ -129,17 +129,28 @@ int main(int argc, const char **argv) {
 
   auto samples = loadExamples(root);
 
+  std::vector<std::filesystem::path> algos;
+  algos.reserve(10);
+
   for (auto const &dir_entry : std::filesystem::directory_iterator{root}) {
     if (!endsWith(dir_entry, SHARED_EXTENSION, sizeof(SHARED_EXTENSION) - 1))
       continue;
 
-    std::cout << dir_entry.path() << '\n';
+    algos.push_back(dir_entry.path());
+  }
 
-    SharedLibrary dll(dir_entry.path().string());
+  std::sort(algos.begin(), algos.end(),
+            [](const std::filesystem::path &a, const std::filesystem::path &b) {
+              return a.filename().string().find("Brute") == std::string::npos;
+            });
+
+  for (auto const &pa : algos) {
+
+    SharedLibrary dll(pa.string());
 
     auto tsp = dll.getFunction<f_TSP>("TSP");
 
-    std::cout << dir_entry.path().filename() << ": " << '\n';
+    std::cout << pa.filename() << ": " << '\n';
     for (auto &sample : samples) {
       std::vector<int> out(sample.cols);
 
@@ -172,7 +183,7 @@ int main(int argc, const char **argv) {
       // "Delta";
       csv.begin();
       csv.write(sample.origin.filename());
-      csv.write(dir_entry.path().filename());
+      csv.write(pa.filename());
       csv.write(dur.count());
       csv.write(pathStr.str());
       csv.write(cost);
