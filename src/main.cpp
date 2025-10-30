@@ -115,16 +115,16 @@ int main(int argc, const char **argv) {
 
     std::cout << dir_entry.path().filename() << ": " << '\n';
     for (auto &sample : samples) {
-      int *out = (int *)malloc(sizeof(int) * sample.cols);
+      std::vector< int > out( sample.cols );
       Clock::time_point start = Clock::now();
-      size_t n = tsp(out, sample.data.data(), sample.cols);
+      size_t n = tsp(out.data(), sample.data.data(), sample.cols);
       std::chrono::duration<double> dur = Clock::now() - start;
       std::cout << '\t' << sample.origin.filename() << ": " << dur.count()
                 << "s\n";
 
       float cost = 0;
-      for (size_t i = 0; i < n; i++) {
-        size_t ni = (i + 1) % n;
+      for (size_t i = 0; i < out.size(); i++) {
+        size_t ni = (i + 1) % out.size();
 
         cost += sample.data[out[i] * sample.cols + out[ni]];
       }
@@ -133,7 +133,7 @@ int main(int argc, const char **argv) {
       if (std::abs(delta) > EPSILON) {
         std::cout << "\tWrong by: " << delta << " (out - expected)\n\n";
       } else {
-        std::cout << "\tCorrect using EPSILON=" << EPSILON << "\n\n";
+        std::cout << "Right Cost/Path" << "\n";
       }
     }
 
