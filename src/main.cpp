@@ -147,8 +147,8 @@ int main(int argc, const char **argv) {
 
       std::stringstream pathStr;
       float cost = 0;
-      for (size_t i = 0; i < n; i++) {
-        size_t ni = (i + 1) % n;
+      for (size_t i = 0; i < out.size(); i++) {
+        size_t ni = (i + 1) % out.size();
 
         pathStr << out[i] << "," << out[ni];
         if (ni != 0)
@@ -161,7 +161,7 @@ int main(int argc, const char **argv) {
       if (std::abs(delta) > EPSILON) {
         std::cout << "\tWrong by: " << delta << " (out - expected)\n\n";
       } else {
-        std::cout << "\tCorrect using EPSILON=" << EPSILON << "\n\n";
+        std::cout << "Right Cost/Path" << "\n";
       }
 
       // "Sample", "Algorithm", "ExecutionTime", "Path", "Cost", "Expected",
