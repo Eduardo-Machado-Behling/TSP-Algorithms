@@ -1,6 +1,8 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <sstream>
+#include <string>
 #include <vector>
 
 #include "SharedLibrary.hpp"
@@ -40,16 +42,31 @@ bool endsWith(const std::filesystem::directory_entry &dir_entry,
 }
 
 struct CSVWriter {
-  CSVWriter(const char headers[][20]) : csv("log.csv") {
-    for (size_t i = 0; i < sizeof(headers) / sizeof(*headers); i++) {
+  CSVWriter(std::vector<std::string> headers, std::filesystem::path root)
+      : csv(root / "log.csv") {
+    for (size_t i = 0; i < headers.size(); i++) {
+      csv << headers[i] << ',';
     }
   }
 
-  void start() { csv << '\n'; }
-  template <typename T> void write(T &val) { csv << val; }
+  void begin() { began = true; }
+
+  template <typename T> void write(T val) {
+    if (!began)
+      return;
+    csv << val;
+    csv << ',';
+  }
+
+  void end() {
+    csv << '\n';
+    csv.flush();
+    began = false;
+  }
 
 private:
   std::ofstream csv;
+  bool began = false;
 };
 
 std::vector<AdjacencyMatrix> loadExamples(const std::filesystem::path &root) {
@@ -101,6 +118,10 @@ int main(int argc, const char **argv) {
   std::filesystem::path root = argv[0];
   root = root.parent_path();
 
+  CSVWriter csv({"Sample", "Algorithm", "ExecutionTime", "Path", "Cost",
+                 "Expected", "Delta"},
+                root);
+
   auto samples = loadExamples(root);
 
   for (auto const &dir_entry : std::filesystem::directory_iterator{root}) {
@@ -115,16 +136,23 @@ int main(int argc, const char **argv) {
 
     std::cout << dir_entry.path().filename() << ": " << '\n';
     for (auto &sample : samples) {
-      std::vector< int > out( sample.cols );
+      std::vector<int> out(sample.cols);
+
       Clock::time_point start = Clock::now();
       size_t n = tsp(out.data(), sample.data.data(), sample.cols);
       std::chrono::duration<double> dur = Clock::now() - start;
+
       std::cout << '\t' << sample.origin.filename() << ": " << dur.count()
                 << "s\n";
 
+      std::stringstream pathStr;
       float cost = 0;
       for (size_t i = 0; i < out.size(); i++) {
         size_t ni = (i + 1) % out.size();
+
+        pathStr << out[i] << "," << out[ni];
+        if (ni != 0)
+          pathStr << ',';
 
         cost += sample.data[out[i] * sample.cols + out[ni]];
       }
@@ -135,6 +163,18 @@ int main(int argc, const char **argv) {
       } else {
         std::cout << "Right Cost/Path" << "\n";
       }
+
+      // "Sample", "Algorithm", "ExecutionTime", "Path", "Cost", "Expected",
+      // "Delta";
+      csv.begin();
+      csv.write(sample.origin.filename());
+      csv.write(dir_entry.path().filename());
+      csv.write(dur.count());
+      csv.write(pathStr.str());
+      csv.write(cost);
+      csv.write(sample.expected);
+      csv.write(delta);
+      csv.end();
     }
 
     std::cout << '\n';
