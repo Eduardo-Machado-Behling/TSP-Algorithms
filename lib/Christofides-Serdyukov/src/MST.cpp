@@ -40,9 +40,6 @@ public:
 };
 
 std::vector<Edge> KruskalMST(std::vector<Edge> &h_edge_list, int numVerts) {
-  std::cout << "  [CPU] Running Kruskal's MST..." << std::endl;
-
-  std::sort(h_edge_list.begin(), h_edge_list.end());
 
   DisjointSetUnion dsu(numVerts);
   std::vector<Edge> h_mst_edges;

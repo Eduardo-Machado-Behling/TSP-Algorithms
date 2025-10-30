@@ -45,7 +45,10 @@ struct CSVWriter {
   CSVWriter(std::vector<std::string> headers, std::filesystem::path root)
       : csv(root / "log.csv") {
     for (size_t i = 0; i < headers.size(); i++) {
-      csv << headers[i] << ',';
+      if (i != headers.size() - 1)
+        csv << headers[i] << ',';
+      else
+        csv << headers[i] << '\n';
     }
   }
 
@@ -89,27 +92,29 @@ std::vector<AdjacencyMatrix> loadExamples(const std::filesystem::path &root) {
 
     std::string buff;
     bool first = true;
+    m.cols = 0;
     while (std::getline(file, buff)) {
-
-      while (true) {
-        size_t j = buff.find(' ');
-
-        if (first)
-          m.cols += 1;
-        m.data.push_back(std::stof(buff.substr(0, j)));
-
-        if (j == buff.npos)
-          break;
-        while (j++ < buff.length() && !isdigit(buff[j]))
-          ;
-
-        if (j >= buff.length())
-          break;
-        buff = buff.substr(j);
+      std::string aux;
+      m.cols += 1;
+      for (size_t index = 0; index < buff.length(); index++) {
+        if (isgraph(buff.at(index))) {
+          aux.push_back(buff.at(index));
+        } else {
+          if (aux.length() > 0) {
+            m.data.push_back((float)std::stoi(aux));
+          }
+          aux.clear();
+        }
       }
-      first = false;
+      if (aux.length() > 0) {
+        m.data.push_back((float)std::stoi(aux));
+      }
+      aux.clear();
     }
   }
+
+  std::sort(samples.begin(), samples.end(),
+            [](auto &a, auto &b) { return a.data.size() < b.data.size(); });
 
   return samples;
 }
@@ -147,12 +152,11 @@ int main(int argc, const char **argv) {
 
       std::stringstream pathStr;
       float cost = 0;
-      for (size_t i = 0; i < out.size(); i++) {
-        size_t ni = (i + 1) % out.size();
+      pathStr << out[0];
+      for (size_t i = 0; i < n; i++) {
+        size_t ni = (i + 1) % n;
 
-        pathStr << out[i] << "," << out[ni];
-        if (ni != 0)
-          pathStr << ',';
+        pathStr << " -> " << out[ni];
 
         cost += sample.data[out[i] * sample.cols + out[ni]];
       }

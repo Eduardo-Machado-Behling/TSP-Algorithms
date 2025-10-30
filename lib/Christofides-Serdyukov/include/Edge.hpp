@@ -6,6 +6,9 @@ struct Edge {
   int dst;
   float weight;
 
+  Edge(size_t src, size_t dst, float weight)
+      : src(src), dst(dst), weight(weight) {}
+
   bool operator<(const Edge &other) const { return weight < other.weight; }
 
   bool operator>(const Edge &other) const { return weight > other.weight; }
