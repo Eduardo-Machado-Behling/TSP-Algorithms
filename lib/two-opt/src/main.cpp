@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <vector>
+#include <algorithm>
 
 std::vector<size_t> twoOpt(std::vector<size_t> route, const float *adjMatrix,
                            size_t numVerts);
