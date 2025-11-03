@@ -1,9 +1,6 @@
 #include "lib.hpp"
 
 #include <algorithm>
-#include <cmath>
-#include <iostream>
-#include <map>
 #include <stack>
 #include <vector>
 
@@ -23,8 +20,8 @@ size_t TSP(int *output, const float *adjMatrix, size_t numVerts) {
   std::sort(edges.begin(), edges.end());
   auto mst = KruskalMST(edges, numVerts);
 
-  std::vector<int> vertDegrees(numVerts, 0);
-  for (auto &edge : mst) {
+  std::vector<int> vertDegrees(numVerts, 0); // MUST be initialized
+  for (auto &edge : mst) {                   // Renamed from 'edges' to 'edge'
     vertDegrees[edge.src]++;
     vertDegrees[edge.dst]++;
   }
@@ -51,9 +48,11 @@ size_t TSP(int *output, const float *adjMatrix, size_t numVerts) {
       }
     }
 
-    sub_matching = BlossomMWPM((int)oddSize, subAdjMatrix.data());
+    sub_matching.assign((size_t)oddSize, -1);
+    int match_count =
+        BlossomMWPM((int)oddSize, subAdjMatrix.data(), sub_matching);
+    (void)match_count; // not used further, but Blossom has filled sub_matching
   } else {
-    // No matching needed
     sub_matching.assign(oddSize, -1);
   }
 
@@ -82,7 +81,6 @@ size_t TSP(int *output, const float *adjMatrix, size_t numVerts) {
       break;
     }
   }
-
   if (start == -1) {
     // No edges at all -> degenerate tour: output single vertex 0
     if (numVerts > 0) {
@@ -106,6 +104,7 @@ size_t TSP(int *output, const float *adjMatrix, size_t numVerts) {
     } else {
       int u = multigraph_copy[v].back();
       multigraph_copy[v].pop_back();
+
       // remove the opposite edge occurrence
       auto &adj = multigraph_copy[u];
       for (size_t k = 0; k < adj.size(); ++k) {
@@ -119,7 +118,7 @@ size_t TSP(int *output, const float *adjMatrix, size_t numVerts) {
     }
   }
 
-  // Improve results on this sample set
+  // eulerian_circuit currently is in reverse order (end->start), reverse it
   std::reverse(eulerian_circuit.begin(), eulerian_circuit.end());
 
   std::vector<bool> visited((size_t)numVerts, false);

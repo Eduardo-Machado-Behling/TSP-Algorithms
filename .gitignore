@@ -3,5 +3,9 @@ build
 .vscode
 lib/cat.py
 lib/report.txt
+<<<<<<< HEAD
 *.csv
 *.py
+=======
+.cache
+>>>>>>> b81a42a9a6102334f910e2aef94356c459c2fbe7
