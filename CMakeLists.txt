@@ -18,7 +18,6 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
     "SHARED_EXTENSION_STR=\"${CMAKE_SHARED_LIBRARY_SUFFIX}\""
 )
 
-# Specify include directories so the compiler can find your header files.
 target_include_directories(${PROJECT_NAME} PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
@@ -42,15 +41,10 @@ if(ALL_LIBRARY_TARGETS)
     target_link_libraries(${PROJECT_NAME} PRIVATE ${ALL_LIBRARY_TARGETS})
 endif()
 
-
-
-# Check if a 'samples' directory exists at the project root.
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/samples")
-    add_custom_command(
-        TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-                "${CMAKE_CURRENT_SOURCE_DIR}/samples"
-                "$<TARGET_FILE_DIR:${PROJECT_NAME}>/samples"
-        COMMENT "Copying samples directory to executable location."
-    )
-endif()
+add_custom_command(
+    TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_CURRENT_SOURCE_DIR}/samples"
+            "$<TARGET_FILE_DIR:${PROJECT_NAME}>/samples"
+    COMMENT "Copying samples directory to executable location."
+)

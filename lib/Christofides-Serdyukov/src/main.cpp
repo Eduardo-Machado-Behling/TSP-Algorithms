@@ -19,12 +19,12 @@ size_t TSP(int *output, const float *adjMatrix, size_t numVerts) {
       edges.emplace_back(i, j, adjMatrix[i * numVerts + j]);
     }
   }
-  std::sort(edges.begin(), edges.end()); // Sort by weight
 
+  std::sort(edges.begin(), edges.end());
   auto mst = KruskalMST(edges, numVerts);
 
-  std::vector<int> vertDegrees(numVerts, 0); // MUST be initialized
-  for (auto &edge : mst) {                   // Renamed from 'edges' to 'edge'
+  std::vector<int> vertDegrees(numVerts, 0);
+  for (auto &edge : mst) {
     vertDegrees[edge.src]++;
     vertDegrees[edge.dst]++;
   }
@@ -37,9 +37,7 @@ size_t TSP(int *output, const float *adjMatrix, size_t numVerts) {
   }
 
   size_t oddSize = oddVerts.size();
-  // If there are odd-degree vertices, build a reduced adjacency and run
-  // matching.
-  std::vector<int> sub_matching; // will be filled by Blossom function if used
+  std::vector<int> sub_matching;
 
   if (oddSize >= 2) {
     std::vector<float> subAdjMatrix(oddSize * oddSize, 0.0f);
@@ -53,10 +51,7 @@ size_t TSP(int *output, const float *adjMatrix, size_t numVerts) {
       }
     }
 
-    sub_matching.assign((size_t)oddSize, -1);
-    int match_count =
-        BlossomMWPM((int)oddSize, subAdjMatrix.data(), sub_matching);
-    (void)match_count; // not used further, but Blossom has filled sub_matching
+    sub_matching = BlossomMWPM((int)oddSize, subAdjMatrix.data());
   } else {
     // No matching needed
     sub_matching.assign(oddSize, -1);
@@ -87,6 +82,7 @@ size_t TSP(int *output, const float *adjMatrix, size_t numVerts) {
       break;
     }
   }
+
   if (start == -1) {
     // No edges at all -> degenerate tour: output single vertex 0
     if (numVerts > 0) {
@@ -123,20 +119,15 @@ size_t TSP(int *output, const float *adjMatrix, size_t numVerts) {
     }
   }
 
-  // eulerian_circuit currently is in reverse order (end->start), reverse it
+  // Improve results on this sample set
   std::reverse(eulerian_circuit.begin(), eulerian_circuit.end());
 
-  // Convert Eulerian circuit to Hamiltonian tour by skipping repeated vertices
   std::vector<bool> visited((size_t)numVerts, false);
   size_t tour_idx = 0;
   int last_node = -1;
 
   for (int node : eulerian_circuit) {
     if (!visited[(size_t)node]) {
-      if (last_node != -1) {
-        // Optionally accumulate length: float tour_length +=
-        // adjMatrix[last_node*numVerts + node];
-      }
       visited[(size_t)node] = true;
       output[tour_idx++] = node;
       last_node = node;

@@ -1,6 +1,7 @@
 #include "lib.h"
 
 #include "limits.h"
+
 #include <algorithm>
 #include <iostream>
 #include <vector>
@@ -15,8 +16,10 @@ size_t TSP(int *output, const float *adjMatrix, size_t numVerts) {
     permutation.push_back(i);
   }
 
+  // O(n!)
   do {
     routeCost = 0;
+    // O(n)
     for (size_t index = 1; index < numVerts; index++) {
       routeCost +=
           adjMatrix[permutation[index - 1] * numVerts + permutation[index]];

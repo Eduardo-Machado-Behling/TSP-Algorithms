@@ -5,6 +5,6 @@
 
 #include "Edge.hpp"
 
-int BlossomMWPM(int n, const float *g, std::vector<int> &match);
+std::vector<int> BlossomMWPM(int oddSize, const float *subAdjMatrix);
 
 #endif // MW_MATCHING_HPP

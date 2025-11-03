@@ -4,17 +4,14 @@
 #include <vector>
 
 #define PERFECT_MATCHING_DOUBLE
-#include "PerfectMatching.h" // path should resolve to blossom5's header
+#include "PerfectMatching.h"
 
-int BlossomMWPM(int oddSize, const float *subAdjMatrix,
-                std::vector<int> &sub_matching) {
+std::vector<int> BlossomMWPM(int oddSize, const float *subAdjMatrix) {
   if (oddSize <= 0) {
-    sub_matching.clear();
-    return 0;
+    return {};
   }
   if (oddSize % 2 != 0) {
-    sub_matching.assign((size_t)oddSize, -1);
-    return 0;
+    return {oddSize, -1};
   }
 
   const int maxEdges = (oddSize * (oddSize - 1)) / 2;
@@ -33,19 +30,16 @@ int BlossomMWPM(int oddSize, const float *subAdjMatrix,
 
   pm.Solve();
 
-  sub_matching.assign((size_t)oddSize, -1);
+  std::vector<int> sub_matching(oddSize, -1);
 
-  int pairs = 0;
   for (int i = 0; i < oddSize; ++i) {
     int mate = pm.GetMatch(i);
     if (mate < 0) {
       sub_matching[(size_t)i] = -1;
     } else {
       sub_matching[(size_t)i] = mate;
-      if (i < mate)
-        ++pairs; // count each pair once
     }
   }
 
-  return pairs;
+  return sub_matching;
 }

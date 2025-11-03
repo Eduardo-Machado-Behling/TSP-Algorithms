@@ -3,3 +3,5 @@ build
 .vscode
 lib/cat.py
 lib/report.txt
+*.csv
+*.py

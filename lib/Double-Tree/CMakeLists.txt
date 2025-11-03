@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.18)
 
 # must be Folder name
-project("two-opt" LANGUAGES CXX)
+project("Double-Tree" LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 

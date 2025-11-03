@@ -21,13 +21,13 @@ using Clock = std::chrono::high_resolution_clock;
 
 const char SHARED_EXTENSION[] = SHARED_EXTENSION_STR;
 
-struct AdjacencyMatrix {
-  std::filesystem::path origin;
+struct Sample {
+  std::filesystem::path fileOrigin;
 
-  std::vector<float> data;
-  size_t cols = 0;
+  std::vector<float> adjMatrix;
+  size_t vertsAmount = 0;
 
-  float expected = 0.0;
+  float expectedCost = 0.0;
 };
 
 bool endsWith(const std::filesystem::directory_entry &dir_entry,
@@ -73,8 +73,8 @@ private:
   bool began = false;
 };
 
-std::vector<AdjacencyMatrix> loadExamples(const std::filesystem::path &root) {
-  std::vector<AdjacencyMatrix> samples;
+std::vector<Sample> loadExamples(const std::filesystem::path &root) {
+  std::vector<Sample> samples;
 
   for (auto const &dir_entry :
        std::filesystem::directory_iterator{root / "samples"}) {
@@ -83,62 +83,65 @@ std::vector<AdjacencyMatrix> loadExamples(const std::filesystem::path &root) {
       continue;
 
     std::ifstream file(dir_entry.path());
-    AdjacencyMatrix &m = samples.emplace_back();
-    m.origin = dir_entry.path();
+    Sample &m = samples.emplace_back();
+    m.fileOrigin = dir_entry.path();
 
     int val;
     auto str = dir_entry.path().filename().string();
     sscanf(str.c_str(), "tsp%*d_%d.txt", &val);
-    m.expected = val;
+    m.expectedCost = val;
 
     std::string buff;
     bool first = true;
-    m.cols = 0;
+    m.vertsAmount = 0;
     while (std::getline(file, buff)) {
       std::string aux;
-      m.cols += 1;
+      m.vertsAmount += 1;
       for (size_t index = 0; index < buff.length(); index++) {
         if (isgraph(buff.at(index))) {
           aux.push_back(buff.at(index));
         } else {
           if (aux.length() > 0) {
-            m.data.push_back((float)std::stoi(aux));
+            m.adjMatrix.push_back((float)std::stoi(aux));
           }
           aux.clear();
         }
       }
       if (aux.length() > 0) {
-        m.data.push_back((float)std::stoi(aux));
+        m.adjMatrix.push_back((float)std::stoi(aux));
       }
       aux.clear();
     }
   }
 
-  std::sort(samples.begin(), samples.end(),
-            [](auto &a, auto &b) { return a.data.size() < b.data.size(); });
+  std::sort(samples.begin(), samples.end(), [](auto &a, auto &b) {
+    return a.adjMatrix.size() < b.adjMatrix.size();
+  });
 
   return samples;
 }
 
-int main(int argc, const char **argv) {
+std::filesystem::path getRoot(const char **argv) {
   std::filesystem::path root = argv[0];
-  root = root.parent_path();
-  size_t samplesAmount = 1;
+  return root.parent_path();
+}
+
+size_t getSampleSize(int argc, const char **argv) {
+  size_t samplesAmount = 0;
   if (argc > 1) {
     samplesAmount = atoll(argv[1]);
-    if (samplesAmount == 0)
-      samplesAmount = 1;
+    if (samplesAmount != 0)
+      return samplesAmount;
   }
+  return 1;
+}
 
-  CSVWriter csv({"Sample", "Algorithm", "VertsAmount", "ExecutionTime", "Path",
-                 "Cost", "Expected", "Delta"},
-                root);
-
-  auto samples = loadExamples(root);
-
+std::vector<std::filesystem::path>
+fetchAlgorithms(const std::filesystem::path root) {
   std::vector<std::filesystem::path> algos;
   algos.reserve(10);
 
+  // Filter non shared libraries off
   for (auto const &dir_entry : std::filesystem::directory_iterator{root}) {
     if (!endsWith(dir_entry, SHARED_EXTENSION, sizeof(SHARED_EXTENSION) - 1))
       continue;
@@ -146,28 +149,47 @@ int main(int argc, const char **argv) {
     algos.push_back(dir_entry.path());
   }
 
-  std::sort(algos.begin(), algos.end(),
-            [](const std::filesystem::path &a, const std::filesystem::path &b) {
-              return a.filename().string().find("Brute") == std::string::npos;
-            });
+  const auto alphabeticalOrderBruteLastPred =
+      [](const std::filesystem::path &a, const std::filesystem::path &b) {
+        if (a.filename().string().find("Brute") != std::string::npos)
+          return false;
+        else if (b.filename().string().find("Brute") != std::string::npos)
+          return true;
+        else
+          return a.filename().string() < b.filename().string();
+      };
 
-  for (auto const &pa : algos) {
+  std::sort(algos.begin(), algos.end(), alphabeticalOrderBruteLastPred);
 
+  return algos;
+}
+
+
+int main(int argc, const char **argv) {
+  const std::filesystem::path root = getRoot(argv);
+  const size_t samplesAmount = getSampleSize(argc, argv);
+  const std::vector<Sample> samples = loadExamples(root);
+
+  CSVWriter csv({"Sample", "Algorithm", "VertsAmount", "ExecutionTime", "Path",
+                 "Cost", "Expected", "Delta"},
+                root);
+
+  const std::vector<std::filesystem::path> algos = fetchAlgorithms(root);
+  for (const auto &pa : algos) {
     SharedLibrary dll(pa.string());
 
     auto tsp = dll.getFunction<f_TSP>("TSP");
 
     std::cout << pa.filename() << ": " << '\n';
-    for (auto &sample : samples) {
+    for (const Sample &sample : samples) {
       for (size_t _ = 0; _ < samplesAmount; _++) {
-
-        std::vector<int> out(sample.cols);
+        std::vector<int> out(sample.vertsAmount);
 
         Clock::time_point start = Clock::now();
-        size_t n = tsp(out.data(), sample.data.data(), sample.cols);
+        size_t n = tsp(out.data(), sample.adjMatrix.data(), sample.vertsAmount);
         std::chrono::duration<double> dur = Clock::now() - start;
 
-        std::cout << '\t' << sample.origin.filename() << ": " << dur.count()
+        std::cout << '\t' << sample.fileOrigin.filename() << ": " << dur.count()
                   << "s\n";
 
         std::stringstream pathStr;
@@ -178,11 +200,11 @@ int main(int argc, const char **argv) {
 
           pathStr << " -> " << out[ni];
 
-          cost += sample.data[out[i] * sample.cols + out[ni]];
+          cost += sample.adjMatrix[out[i] * sample.vertsAmount + out[ni]];
         }
 
-        float delta = cost - sample.expected;
-        float p = cost / sample.expected;
+        float delta = cost - sample.expectedCost;
+        float p = cost / sample.expectedCost;
         if (std::abs(delta) > EPSILON) {
           std::cout << "\tWrong by: " << delta << " (" << p
                     << ") (out - expected)\n\n";
@@ -193,13 +215,13 @@ int main(int argc, const char **argv) {
         // "Sample", "Algorithm", "VertsAmount", "ExecutionTime", "Path",
         // "Cost", "Expected", "Delta";
         csv.begin();
-        csv.write(sample.origin.filename());
+        csv.write(sample.fileOrigin.filename());
         csv.write(pa.filename());
-        csv.write(sample.cols);
+        csv.write(sample.vertsAmount);
         csv.write(dur.count());
         csv.write(pathStr.str());
         csv.write(cost);
-        csv.write(sample.expected);
+        csv.write(sample.expectedCost);
         csv.write(delta);
         csv.end();
       }
