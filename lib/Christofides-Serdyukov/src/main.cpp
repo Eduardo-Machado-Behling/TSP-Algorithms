@@ -47,11 +47,7 @@ size_t TSP(int *output, const float *adjMatrix, size_t numVerts) {
         subAdjMatrix[j * oddSize + i] = w;
       }
     }
-
-    sub_matching.assign((size_t)oddSize, -1);
-    int match_count =
-        BlossomMWPM((int)oddSize, subAdjMatrix.data(), sub_matching);
-    (void)match_count; // not used further, but Blossom has filled sub_matching
+    sub_matching = BlossomMWPM((int)oddSize, subAdjMatrix.data());
   } else {
     sub_matching.assign(oddSize, -1);
   }
